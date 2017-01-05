@@ -1,0 +1,40 @@
+#script for pulsar searching with PRESTO
+
+#------------------------------------------------------------------
+#checking RFI and make mask
+echo "Checking RFI and making the mask."
+echo
+echo rfifind time usage:
+rfifind_time=`time rfifind ${1} -o ${4} -time ${2} -freqsig ${5} > rfifind.txt`
+
+#------------------------------------------------------------------
+#read RFI bad percentage
+rfi_bad=`cat rfifind.txt | grep bad | sed -e 's/(//' -e 's/)//' -e 's/%//' | awk '{print int($6*1.0)}'`
+
+#------------------------------------------------------------------
+#if RFI is too bad. Up limit 20
+if [ "$rfi_bad" -ge ${3} ]||[ -z ${3} ];then
+#show information in screen
+  echo "Huge RFT bad percentage, EXIT."
+  echo "Please read log.txt for details."
+#write log.txt in sub-DIR
+  data >> log.txt
+  echo "Bad RFI, $rfi_bad, please check." >> log.txt
+  echo "Detail information in rfifind.txt." >> log.txt
+  echo
+#write log.txt in start-DIR
+  cd ..
+  date >> log.txt
+  echo "${1} with RFI $rfi_bad, too high. Stopped." >> log.txt
+  echo >> log.txt
+  return 2
+fi
+
+#------------------------------------------------------------------
+date >> log.txt
+echo "RFI bad percentage $rfi_bad." >> log.txt
+echo >> log.txt
+echo
+echo -e "RFI bad percentage \033[31m $rfi_bad \033[0m."
+echo
+

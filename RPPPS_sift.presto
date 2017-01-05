@@ -1,0 +1,61 @@
+#!/bin/bash
+#sifting script for pulsar searching with PRESTO
+
+echo
+echo "----------------------------------------------"
+echo "Pulsar acceleration candidates sifting with PRESTO"
+echo "Last modified 2016-11-24"
+echo "Sifting script"
+echo "----------------------------------------------"
+echo
+
+#------------------------------------------------------------------
+#To see if the input format is correct
+#Usage: ().presto FOLDER
+#FILENAME without .sf
+if [ "$#" -eq "0" ];then
+  echo "Please tell me the file path, thank you!"
+  echo "Usage: RPPPS_sift.presto FOLDER (accelnum)"
+  echo "Example: source $RPPPS_DIR/RPPPS_sift.presto /hone/pzc/tmp/PMPS_test/PM0064_00311 50"
+  echo
+  exit 2
+fi
+
+#------------------------------------------------------------------
+#Acceleration number could be a parameter to be set
+if [ "$#" -eq "2" ];then
+  accelnum=${2}
+else
+  accelnum=0
+fi
+
+#------------------------------------------------------------------
+#Check if the folder exist
+#If exist
+if [ -d "${1}" ]; then
+  tmp=`pwd`
+  echo "Sorting candidates."
+  echo
+  cd ${1}
+  date >> log.txt
+  echo "Sifting start." >> log.txt
+  echo >> log.txt
+  candlist="cand_ACCEL_"$accelnum".txt"
+  python $RPPPS_DIR/ACCEL_sift.py > $candlist
+  date >> log.txt
+  echo "Sifting finished." >> log.txt
+  echo >> log.txt
+  cd $tmp
+else
+  echo "The folder ${1} do not exist."
+  echo "Please check the input."
+  echo
+  exit 1
+fi
+
+echo Sifting finished.
+echo
+exit 0
+
+
+

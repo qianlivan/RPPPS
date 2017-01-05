@@ -1,0 +1,72 @@
+#!/bin/bash
+#script for pulsar searching with PRESTO
+
+echo
+echo "------------------------------------------"
+echo "Pulsar search scripts with PRESTO"
+echo "Last modified 2016-11-24"
+echo "Outer shell"
+echo "------------------------------------------"
+echo
+
+#------------------------------------------------------------------
+#To see if the input format is correct
+#Usage: ().presto FILENAME NUMOUT
+#FILENAME without .sf
+if [ "$#" -eq "0" ];then
+  echo "Please at least tell me the file path and name, thank you!"
+  echo "Usage: RPPPS_start.presto FILENAME (para num) (acceleration)"
+  echo "Default: para_num is 8, acceleration 0"
+  echo "Example: source $RPPPS_DIR/RPPPS_start.presto /hone/pzc/tmp/PMPS_test/PM0064_00311.sf 64 200"
+  echo "Example: ls ./*.fil | xargs -n 1 source RPPPS_start.presto"
+  echo
+  exit 2
+fi
+
+paranum=8
+accelnum=0
+
+if [ "$#" -eq "2" ];then
+  paranum=${2}
+fi
+if [ "$#" -eq "3" ];then
+  paranum=${2}
+  accelnum=${3}
+fi
+
+fname=${1}
+bash $RPPPS_DIR/RPPPS_search.presto $fname $paranum $accelnum
+return_value=$?
+if [ "$return_value" -ne "0" ];then
+  echo "In searching, the return value is $return_value."
+  echo "Messages from return values:"
+  echo "1: missing folders or files; 2: missing input parameters."
+  exit 1
+fi
+
+fname_path=${fname%.*}
+bash $RPPPS_DIR/RPPPS_sift.presto $fname_path $accelnum
+return_value=$?
+if [ "$return_value" -ne "0" ];then
+  echo "In sifting, the return value is $return_value."
+  echo "Messages from return values:"
+  echo "1: missing folders or files; 2: missing input parameters."
+  exit 1
+fi
+
+channels=`readfile ${1} | grep channels | awk '{print $5}'`
+ext=".sf"
+bash $RPPPS_DIR/RPPPS_fold.presto $fname_path $accelnum $channels $ext
+return_value=$?
+if [ "$return_value" -ne "0" ];then
+  echo "In folding, the return value is $return_value."
+  echo "Messages from return values:"
+  echo "1: missing folders or files; 2: missing input parameters."
+  exit 1
+fi
+
+echo "The pipeline finished."
+echo
+exit 0
+
+

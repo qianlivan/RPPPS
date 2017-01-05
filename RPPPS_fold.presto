@@ -1,0 +1,189 @@
+#!/bin/bash
+#script for pulsar searching with PRESTO
+
+echo
+echo "------------------------------------------"
+echo "Pulsar candidates folding scripts with PRESTO"
+echo "Last modified 2016-11-24"
+echo "Folding script"
+echo "------------------------------------------"
+echo
+
+#------------------------------------------------------------------
+#To see if the input format is correct
+#Usage: ().presto FOLDER
+if [ "$#" -eq "0" ];then
+  echo "Please tell me the file path, thank you!"
+  echo "Usage: RPPPS_folding.presto FOLDER (accelnum) (channels) (extensions)"
+  echo "Example: source $RPPPS_DIR/RPPPS_folding.presto /hone/pzc/tmp/PMPS_test/PM0064_00311 50 96 .sf"
+  echo
+  exit 2
+fi
+
+#------------------------------------------------------------------
+if [ "$#" -eq "2" ];then
+  accelnum=${2}
+else
+  accelnum=0
+  channels=96
+  ext=".sf"
+fi
+
+if [ "$#" -eq "3" ];then
+  accelnum=${2}
+  channels=${3}
+else
+  accelnum=0
+  channels=96
+  ext=".sf"
+fi
+
+if [ "$#" -eq "4" ];then
+  accelnum=${2}
+  channels=${3}
+  ext=${4}
+fi
+
+
+#------------------------------------------------------------------
+#Check if the folder exist
+#If exist
+if [ -d "${1}" ]; then
+  echo "Folder ${1} exists, entering."
+  tmp=`pwd`
+  cd ${1}
+else
+  echo "The folder ${1} do not exist."
+  echo "Please check the input."
+  echo
+  exit 1
+fi
+
+#------------------------------------------------------------------
+#Check if the candidate list exist
+candlist="cand_ACCEL_"$accelnum".txt"
+if [ ! -f "$candlist" ]; then
+  echo "ERROR: no candidate list $candlist found."
+  echo "Finished."
+  echo
+  cd $tmp
+  exit 1
+fi
+
+#------------------------------------------------------------------
+#read the RA and DEC for candidate checking
+RA=`cat log.txt | grep RA | sed -n "1 p" | awk '{print $2}'`
+DEC=`cat log.txt | grep DEC | sed -n "1 p" | awk '{print $2}'`
+echo RA $RA, DEC $DEC
+
+#------------------------------------------------------------------
+#make script to make candidates
+echo "Making scripts for folding parallely."
+echo "#!/bin/bash"> makecand.txt
+fname_noext=${1}
+fname_noext=${fname_noext%/}
+fname_noext=${fname_noext#*/}
+fout=$fname_noext"_ACCEL_"$accelnum
+maskname=$fname_noext"_rfifind.mask"
+fname=$fname_noext$ext
+line=1
+#echo "single_pulse_search.py *.singlepulse" >> makecand.txt
+for SNR in `cat $candlist | grep $fname_noext | awk '{print int($3)}'`
+do
+
+#read DM, period, cand-number and cand-file
+  psr_dm=`cat $candlist | grep $fname_noext | sed -n "$line p" | awk '{print $2}'`
+  psr_p=`cat $candlist | grep $fname_noext | sed -n "$line p" | awk '{print $8*1e-3}'`
+  psr_pp=`echo $psr_p | awk '{print $1*1000.0}'`
+  psr_cand_tmp=`cat $candlist | grep $fname_noext | sed -n "$line p" | awk '{print $1}'`
+  psr_candnum=`echo ${psr_cand_tmp#*:*}`
+  psr_candfile=`echo ${psr_cand_tmp%*:*}`
+  psr_candfile=$psr_candfile".cand"
+
+#write log.txt
+  echo "Acceleration search: Candidate with p0 $psr_p second and DM $psr_dm." >> log.txt
+  echo "Acceleration search: Candidate file $psr_candfile." >> ./log.txt
+  echo "Acceleration search: Candidate number $psr_candnum." >> ./log.txt
+
+#candidates checking
+  #python $RPPPS_DIR/CandCheck.py $RA $DEC $psr_pp $psr_dm >> ./log.txt
+  echo >> ./log.txt
+
+#write script
+  fout1=$fout"_"$line
+  echo "mkdir $line" >> makecand.txt
+  echo "cd $line" >> makecand.txt
+  echo "prepfold -npart 256 -start 0.01 -end 0.99 -noxwin -mask ../$maskname -dm $psr_dm -nsub $channels -nosearch ../$fname -o $fout1 -accelcand $psr_candnum -accelfile ../$psr_candfile >> /dev/null &" >> makecand.txt
+  echo "cd .." >> makecand.txt
+  ((line++))
+done
+
+#------------------------------------------------------------------
+((line--))
+echo "Folding for $line candidate."
+echo
+echo "line=$line" >> makecand.txt
+cat $RPPPS_DIR/prepfold_end.bash >> makecand.txt
+
+#------------------------------------------------------------------
+#clean up
+echo "echo Cleaning files......" >> makecand.txt
+echo "echo" >> makecand.txt
+
+#do we need pfd files?
+#echo "rm *.pfd -rdf" >> makecand.txt
+#echo "rm *.bestprof -rdf" >> makecand.txt
+
+echo "rm $fname_noext*.cand -rdf" >> makecand.txt
+echo "rm $fname_noext*.txtcand -rdf" >> makecand.txt
+echo "rm $fname_noext_DM*.inf -rdf" >> makecand.txt
+echo "rm *_$accelnum -rdf" >> makecand.txt
+echo "rm $fname_noext_DDpara_2.bash -rdf" >> makecand.txt
+#echo "rm $fname -rdf" >> makecand.txt
+echo "$RPPPS_DIR/CpCand.linux $line >> /dev/null" >> makecand.txt
+echo "bash CpCand.bash >> /dev/null" >> makecand.txt
+echo "rm CpCand.bash -rdf" >> makecand.txt
+#echo "rm *.singlepulse -rdf" >> makecand.txt
+echo "rm knownPSR.dat -rdf" >> makecand.txt
+#echo "rm makecand.txt -rdf" >> makecand.txt
+
+echo "echo Finish making candidates in $fname." >> makecand.txt
+echo "date >> log.txt" >> makecand.txt
+echo "echo Finish making candidates in $fname >> log.txt" >> makecand.txt
+echo "echo >> log.txt" >> makecand.txt
+#echo "date >> ../log.txt" >> makecand.txt
+#echo "echo Finish making candidates in $fname >> ../log.txt" >> makecand.txt
+#echo "echo >> ../log.txt" >> makecand.txt
+
+
+#------------------------------------------------------------------
+#run script
+echo "Folding candidates."
+echo
+bash ./makecand.txt
+
+#------------------------------------------------------------------
+echo "Outputing candidates to files."
+cat $candlist | grep $fname_noext >> ../cand_list_full.txt
+echo "Finished."
+echo
+
+#------------------------------------------------------------------
+#write log.txt in sub-DIR
+date >> log.txt
+echo "$name finished, successfully." >> log.txt
+cd ..
+
+#write log.txt in start DIR
+date >> log.txt
+echo "$fname finished, successfully." >> log.txt
+echo $RA >> log.txt
+echo $DEC >> log.txt
+echo >> log.txt
+
+cd $tmp
+#------------------------------------------------------------------
+echo Folding finished.
+echo
+exit 0
+

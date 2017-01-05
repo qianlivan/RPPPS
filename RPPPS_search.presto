@@ -1,0 +1,191 @@
+#!/bin/bash
+#script for pulsar searching with PRESTO
+
+echo
+echo "------------------------------------------"
+echo "Pulsar search scripts with PRESTO"
+echo "Last modified 2016-11-24"
+echo "Search script."
+echo "------------------------------------------"
+echo
+
+#------------------------------------------------------------------
+#To see if the input format is correct
+#Usage: ().presto FILENAME NUMOUT
+#FILENAME without .sf
+if [ "$#" -eq "0" ];then
+  echo "Please at least tell me the file path and name, thank you!"
+  echo "Usage: RPPPS_search.presto FILENAME (para num) (acceleration)"
+  echo "Default: para_num is 8, acceleration 0"
+  echo "Example: bash $RPPPS_DIR/RPPPS_search.presto /hone/pzc/tmp/PMPS_test/PM0064_00311.sf 64 200"
+  echo "Example: ls ./*.fil | xargs -n 1 bash RPPPS_start.presto"
+  echo
+  #${1}=/data1/pzc/filterbank_all/47T020.dat.fil
+  #${2}=64=$paranum
+  #${3}=200=$accelnum
+  exit 2
+fi
+
+paranum=8
+accelnum=0
+
+if [ "$#" -eq "2" ];then
+  paranum=${2}
+fi
+if [ "$#" -eq "3" ];then
+  paranum=${2}
+  accelnum=${3}
+fi
+
+#------------------------------------
+#Forming file names from the full path
+#for 
+#${1}=/data1/pzc/aaa.fil
+#${1}=../../bbb.fil
+
+pathname=${1}
+
+#fname=aaa.fil
+fname=${pathname##*/}
+
+#fname_noext=aaa
+fname_noext=${fname%.*}
+
+#fname_ext=fil
+fname_ext=${fname##*.}
+
+#fname_path=/data1/pzc/
+#here, convert all the pathes to the absolute path
+work_dir=`pwd`
+fname_path=${pathname%/*}
+cd $fname_path
+fname_path=`pwd`
+cd $work_dir
+pathname="$fname_path/$fname"
+
+#maskname=aaa_rfifind.mask
+maskname=$fname_noext"_rfifind.mask"
+
+
+echo "Processing $pathname start."
+date >> log.txt
+echo "Processing $pathname" >> log.txt
+echo >> log.txt
+
+
+#------------------------------------------------------------------
+#check if file exist
+if [ ! -f "$pathname" ]; then
+  #show information in screen
+  echo "ERROR: no such a file $pathname."
+  echo "Finished."
+  #write log.txt in start DIR
+  date >> log.txt
+  echo "ERROR: no such a file $pathname." >> log.txt
+  echo "Finished. " >> log.txt
+  echo >> log.txt
+  exit 1
+fi
+echo "Datafile $fname found at $pathname."
+echo
+
+#------------------------------------------------------------------
+#Check if the folder exist
+#If exist
+if [ -d "$fname_noext" ]; then
+  echo "The folder $fname_noext exist."
+  echo "It is possible that you have processed this file before."
+  echo "Please delete the folder $fname_noext in advance if you want to re-process it."
+  echo
+  date >> log.txt
+  echo "The file may be processed before, finished." >> log.txt
+  echo >> log.txt
+  exit 1
+fi
+
+#Createing a new DIR
+date >> log.txt
+echo "Start searching." >> log.txt
+echo >> log.txt
+echo "Making directory for processing $pathname."
+echo
+mkdir $fname_noext
+cd $fname_noext
+#writing log.txt in sub-DIR
+date >> log.txt
+echo "Folder $fname_noext created." >> log.txt
+echo >> log.txt
+#echo
+
+#------------------------------------------------------------------
+#copy file
+#cp $pathname ./ -f
+ln -s $pathname ./
+
+#------------------------------------------------------------------
+#get numout and channels
+spectraPF=`readfile $fname | grep Spectra | grep file | awk '{print int($5)}'`
+#if even, -1
+(($((spectraPF%2))==0))||spectraPF=$((spectraPF-1))
+channels=`readfile $fname | grep channels | awk '{print int($5)}'`
+echo "Numout is $spectraPF."
+echo
+
+#------------------------------------------------------------------
+#write RA and DEC in log.txt, so that the positions can be used for known-pulsar identification.
+RA=`readfile $fname | grep RA | sed -n "2 p" | awk '{print $5}'`
+DEC=`readfile $fname | grep Dec | sed -n "2 p" | awk '{print $5}'`
+echo "File pointing: RA $RA, DEC $DEC."
+echo
+date >> log.txt
+echo "File: $pathname" >> log.txt
+echo "RA $RA" >> log.txt
+echo "DEC $DEC" >> log.txt
+echo >> log.txt
+
+#------------------------------------------------------------------
+#checking RFI and make mask
+date >> log.txt
+echo "RFI seeking start." >> log.txt
+echo >> log.txt
+rfitime=2.0
+bad_percentage=20
+rfi_output=$fname_noext
+freqsig=10
+bash $RPPPS_DIR/RPPPS_rfifind.presto $fname $rfitime $bad_percentage $rfi_output $freqsig
+date >> log.txt
+echo "RFI seeking finished." >> log.txt
+echo >> log.txt
+
+date >> log.txt
+echo "Processing $pathname, parallel $paranum, acceleration $accelnum." >> log.txt
+echo >> log.txt
+echo -e "Processing \033[31m $pathname \033[0m, parallel \033[31m $paranum \033[0m, acceleration \033[31m $accelnum \033[0m."
+echo
+
+#------------------------------------------------------------------
+echo "Creating parallel script with paranum $paranum and acceleration $accelnum."
+echo
+#creating parallel script
+$RPPPS_DIR/makeDDlist_para_2.linux $fname_noext $spectraPF $paranum $accelnum "."$fname_ext >> /dev/null
+#forming filename
+DDscriptname=$fname_noext"_DDpara_2.bash"
+#run script
+echo "Dedispersing, FFTing and searching......"
+echo
+bash ./$DDscriptname
+date >> log.txt
+echo "Searching finished." >> log.txt
+echo >> log.txt
+
+cd ..
+date >> log.txt
+echo "Searching finished." >> log.txt
+echo >> log.txt
+
+#------------------------------------------------------------------
+echo Search finished.
+echo
+exit 0
+
+
