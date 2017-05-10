@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "DDplan.h"
 
 void init(){
 //initial display
@@ -33,12 +34,12 @@ int main(int argc, char *argv[]){
 */
 
 //For DM 4000 search, for reprocessing PMPS data
-  int numcall=6;
+/*  int numcall=6;
   float startDM[]={0.0, 114.0, 266.0, 476.0, 856.0, 2376.0};
   float DMstep[]={0.5, 1.0, 3.0, 5.0, 10.0, 20.0};
   int downsamp[]={1, 2, 4, 8, 16, 32};
   int numDMs[]={228, 152, 70, 76, 152, 76};
-
+*/
   float totalround=0,roundcount=0;
 
   init();
@@ -173,7 +174,7 @@ int main(int argc, char *argv[]){
     fprintf(outfile,"  ((b--))\n");
     fprintf(outfile,"  ((c--))\n");
     fprintf(outfile,"  ((d--))\n");
-    fprintf(outfile,"  echo \"$e threads left: prepdata $a, realfft $b, accelesearch $c, single-pulse $d. %d trials done or running, %.0f left, %.0f in total.\"\n",i, totalround-i, totalround);
+    fprintf(outfile,"  echo \"$e processes running: prepdata $a, realfft $b, accelesearch $c, single-pulse $d. %d trials done or running, %.0f left, %.0f in total.\"\n",i, totalround-i, totalround);
     fprintf(outfile,"  sleep 2 \n");
     fprintf(outfile,"  a=`ps augx | grep $username | grep prepdata | wc -l`\n");
     fprintf(outfile,"  b=`ps augx | grep $username | grep realfft | wc -l`\n");
@@ -189,7 +190,7 @@ int main(int argc, char *argv[]){
     fprintf(outfile,"  ((b--))\n");
     fprintf(outfile,"  ((c--))\n");
     fprintf(outfile,"  ((d--))\n");
-    fprintf(outfile,"  echo \"$e threads left: prepdata $a, realfft $b, accelesearch $c, single-pulse $d. %d trials done or running, %.0f left, %.0f in total.\"\n",i, totalround-i, totalround);
+    fprintf(outfile,"  echo \"$e processes running: prepdata $a, realfft $b, accelesearch $c, single-pulse $d. %d trials done or running, %.0f left, %.0f in total.\"\n",i, totalround-i, totalround);
     fprintf(outfile,"cd ..\n");
     //fprintf(outfile,"echo %d trials done or running, %.0f left, %.0f in total.\n\n",i+1, totalround-i-1, totalround);
 //repeat 1 and 2
@@ -209,7 +210,7 @@ int main(int argc, char *argv[]){
   fprintf(outfile,"  ((c--))\n");
   fprintf(outfile,"  ((d--))\n");
   //fprintf(outfile,"  echo \"$e threads left: prepdata $a, realfft $b, accelesearch $c, single-pulse $d\"\n");
-  fprintf(outfile,"  echo \"$e threads left: prepdata $a, realfft $b, accelesearch $c, single-pulse $d. %d trials done or running, %.0f left, %.0f in total.\"\n",i+1, totalround-i-1, totalround);
+  fprintf(outfile,"  echo \"$e processes left: prepdata $a, realfft $b, accelesearch $c, single-pulse $d. %d trials done or running, %.0f left, %.0f in total.\"\n",i+1, totalround-i-1, totalround);
   fprintf(outfile,"  sleep 2 \n");
   fprintf(outfile,"  a=`ps augx | grep $username | grep prepdata | wc -l`\n");
   fprintf(outfile,"  b=`ps augx | grep $username | grep realfft | wc -l`\n");

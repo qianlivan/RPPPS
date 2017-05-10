@@ -86,6 +86,7 @@ fname_noext=${fname_noext#*/}
 fout=$fname_noext"_ACCEL_"$accelnum
 maskname=$fname_noext"_rfifind.mask"
 fname=$fname_noext$ext
+echo $fname,$fname_noext,$ext
 line=1
 #echo "single_pulse_search.py *.singlepulse" >> makecand.txt
 for SNR in `cat $candlist | grep $fname_noext | awk '{print int($3)}'`

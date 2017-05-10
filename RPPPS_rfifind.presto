@@ -1,3 +1,4 @@
+#!/bin/bash
 #script for pulsar searching with PRESTO
 
 #------------------------------------------------------------------
@@ -5,7 +6,7 @@
 echo "Checking RFI and making the mask."
 echo
 echo rfifind time usage:
-rfifind_time=`time rfifind ${1} -o ${4} -time ${2} -freqsig ${5} > rfifind.txt`
+rfifind_time=`time rfifind ${1} -o ${4} -time ${2} -freqsig ${5} -timesig ${6} -chanfrac ${7} -intfrac ${8} > rfifind.txt`
 
 #------------------------------------------------------------------
 #read RFI bad percentage

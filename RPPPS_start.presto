@@ -55,8 +55,8 @@ if [ "$return_value" -ne "0" ];then
 fi
 
 channels=`readfile ${1} | grep channels | awk '{print $5}'`
-ext=".sf"
-bash $RPPPS_DIR/RPPPS_fold.presto $fname_path $accelnum $channels $ext
+ext=${fname##*.}
+bash $RPPPS_DIR/RPPPS_fold.presto $fname_path $accelnum $channels .$ext
 return_value=$?
 if [ "$return_value" -ne "0" ];then
   echo "In folding, the return value is $return_value."

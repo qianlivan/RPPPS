@@ -28,6 +28,7 @@ fi
 
 paranum=8
 accelnum=0
+para_version="3"
 
 if [ "$#" -eq "2" ];then
   paranum=${2}
@@ -148,11 +149,14 @@ echo >> log.txt
 date >> log.txt
 echo "RFI seeking start." >> log.txt
 echo >> log.txt
-rfitime=2.0
-bad_percentage=20
+rfitime=0.5
+bad_percentage=40
 rfi_output=$fname_noext
-freqsig=10
-bash $RPPPS_DIR/RPPPS_rfifind.presto $fname $rfitime $bad_percentage $rfi_output $freqsig
+freqsig=4
+timesig=10
+chanfrac=0.7
+intfrac=0.3
+bash $RPPPS_DIR/RPPPS_rfifind.presto $fname $rfitime $bad_percentage $rfi_output $freqsig $timesig $chanfrac $intfrac
 date >> log.txt
 echo "RFI seeking finished." >> log.txt
 echo >> log.txt
@@ -167,9 +171,9 @@ echo
 echo "Creating parallel script with paranum $paranum and acceleration $accelnum."
 echo
 #creating parallel script
-$RPPPS_DIR/makeDDlist_para_2.linux $fname_noext $spectraPF $paranum $accelnum "."$fname_ext >> /dev/null
+$RPPPS_DIR"/makeDDlist_para_"$para_version".linux" $fname_noext $spectraPF $paranum $accelnum "."$fname_ext #>> /dev/null
 #forming filename
-DDscriptname=$fname_noext"_DDpara_2.bash"
+DDscriptname=$fname_noext"_DDpara_"$para_version".bash"
 #run script
 echo "Dedispersing, FFTing and searching......"
 echo
