@@ -94,7 +94,7 @@ do
         notes=$notes$notes1$notes2$notes3$notes4
       fi
       #output format: p0, f0, DM, sigma, num_harm, summed_power, coherent_power, z, a, notes
-      echo "$p0    $f0    $DM    $sigma    $num_harm    $summed_power    $coherent_power    $z    $a_number$a_index $notes" >> "./"$outfile
+      echo "$cand_num $p0    $f0    $DM    $sigma    $num_harm    $summed_power    $coherent_power    $z    $a_number$a_index $notes" >> "./"$outfile
       ((cand_num++))
     else
       #if the candidate section is finished

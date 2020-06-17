@@ -4,7 +4,7 @@
 echo
 echo "----------------------------------------------"
 echo "Pulsar acceleration candidates sifting with PRESTO"
-echo "Last modified 2016-11-24"
+echo "Last modified 2020-06-17"
 echo "Sifting script"
 echo "----------------------------------------------"
 echo
@@ -18,6 +18,7 @@ if [ "$#" -eq "0" ];then
   echo "Usage: RPPPS_sift.presto FOLDER (accelnum)"
   echo "Example: source $RPPPS_DIR/RPPPS_sift.presto /hone/pzc/tmp/PMPS_test/PM0064_00311 50"
   echo
+  #return
   exit 2
 fi
 
@@ -34,7 +35,7 @@ fi
 #If exist
 if [ -d "${1}" ]; then
   tmp=`pwd`
-  echo "Sorting candidates."
+  echo "Sorting candidates......"
   echo
   cd ${1}
   date >> log.txt
@@ -42,11 +43,12 @@ if [ -d "${1}" ]; then
   echo >> log.txt
   candlist="cand_ACCEL_"$accelnum".txt"
   #in GZNU server, re-direct X11 interface to admin1
-  tmp=`echo $DISPLAY`
+  #tmp=`echo $DISPLAY`
   #export DISPLAY=10.10.10.24:24.0
-  export DISPLAY=10.10.1.102:24.0
-  python $RPPPS_DIR/ACCEL_sift.py > $candlist
-  export DISPLAY=$tmp
+  #export DISPLAY=10.10.1.102:24.0
+  python3 $RPPPS_DIR/ACCEL_sift.py > $candlist
+  #python $PRESTO/examplescripts/ACCEL_sift.py > $candlist
+  #export DISPLAY=$tmp
   date >> log.txt
   echo "Sifting finished." >> log.txt
   echo >> log.txt
@@ -55,11 +57,13 @@ else
   echo "The folder ${1} do not exist."
   echo "Please check the input."
   echo
+  #return 1
   exit 1
 fi
 
 echo Sifting finished.
 echo
+#return 0
 exit 0
 
 

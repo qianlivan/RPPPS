@@ -4,7 +4,7 @@
 echo
 echo "------------------------------------------"
 echo "Pulsar search scripts with PRESTO"
-echo "Last modified 2017-06-23"
+echo "Last modified 2020-06-17"
 echo "Outer shell"
 echo "------------------------------------------"
 echo
@@ -14,11 +14,13 @@ echo
 #Usage: ().presto FILENAME NUMOUT
 #FILENAME without .sf
 if [ "$#" -eq "0" ];then
-  echo "Please at least tell me the file path and name, thank you!"
-  echo "Usage: RPPPS_start.presto FILENAME (para num) (acceleration) (parallel version)"
-  echo "Default: para_num is 8, acceleration 0"
-  echo "Example: source $RPPPS_DIR/RPPPS_start.presto /hone/pzc/tmp/PMPS_test/PM0064_00311.sf 64 200"
-  echo "Example: ls ./*.fil | xargs -n 1 source RPPPS_start.presto"
+  echo "Please at least tell me the file list path and name, thank you!"
+  echo "Usage: RPPPS_start_list.presto (para num) (acceleration) (parallel version)"
+  echo "Default: para_num is 8, acceleration 0, parallel version 2"
+  echo "Example: bash $RPPPS_DIR/RPPPS_start.presto 64 200 2"
+  echo "This script aims to process a list of files from a long observation."
+  echo "It will process all the PSRFITS file in current folder."
+  #echo "Example: ls ./*.fil | xargs -n 1 source RPPPS_start.presto"
   echo
   exit 2
 fi
@@ -27,22 +29,26 @@ paranum=8
 accelnum=0
 para_version="2"
 
+if [ "$#" -eq "1" ];then
+  paranum=${1}
+fi
 if [ "$#" -eq "2" ];then
-  paranum=${2}
+  paranum=${1}
+  accelnum=${2}
 fi
 if [ "$#" -eq "3" ];then
-  paranum=${2}
-  accelnum=${3}
-fi
-if [ "$#" -eq "4" ];then
-  paranum=${2}
-  accelnum=${3}
-  para_version=${4}
+  paranum=${1}
+  accelnum=${2}
+  para_version=${3}
 fi
 
 
-fname=${1}
-bash $RPPPS_DIR/RPPPS_search.presto $fname $paranum $accelnum $para_version
+#fname_list="fits_list.txt"
+#ls ./*.fits > fits_list.txt
+fname=`ls ./*.fits | sed -n "1 p"`
+fname1=${fname##*/}
+fname1_noext=${fname1%.*}
+bash $RPPPS_DIR/RPPPS_search_list.presto $fname1_noext $paranum $accelnum $para_version
 return_value=$?
 if [ "$return_value" -ne "0" ];then
   echo "In searching, the return value is $return_value."
@@ -51,8 +57,7 @@ if [ "$return_value" -ne "0" ];then
   exit 1
 fi
 
-fname_path=${fname%.*}
-bash $RPPPS_DIR/RPPPS_sift.presto $fname_path $accelnum
+bash $RPPPS_DIR/RPPPS_sift_list.presto $fname1_noext $accelnum
 return_value=$?
 if [ "$return_value" -ne "0" ];then
   echo "In sifting, the return value is $return_value."
@@ -61,11 +66,11 @@ if [ "$return_value" -ne "0" ];then
   exit 1
 fi
 
-channels=`readfile ${1} | grep channels | awk '{print $5}'`
+#channels=`readfile ${1} | grep channels | awk '{print $5}'`
 #for process FAST 201611 test data
 channels=256
 ext=${fname##*.}
-bash $RPPPS_DIR/RPPPS_fold.presto $fname_path $accelnum $channels .$ext
+bash $RPPPS_DIR/RPPPS_fold_list.presto $fname1_noext $accelnum $channels .$ext
 return_value=$?
 if [ "$return_value" -ne "0" ];then
   echo "In folding, the return value is $return_value."
@@ -73,6 +78,8 @@ if [ "$return_value" -ne "0" ];then
   echo "1: missing folders or files; 2: missing input parameters."
   exit 1
 fi
+
+#rm -rdf fits_list.txt
 
 echo "The pipeline finished."
 echo

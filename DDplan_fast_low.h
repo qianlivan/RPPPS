@@ -2,40 +2,15 @@
 //For PMPS, the command we may use is :
 //DDplan.py -l 0.0 -d 3000.0 -f 1374 -b 228 -n 96 -c 0 -t 0.00025 -s 96 -r 0.5
 
-//For FAST FRB121102 search
-  int numcall=1;
-  float startDM[]={540};
-  float DMstep[]={0.5};
-  int downsamp[]={1};
-  int numDMs[]={20};
-
-
-//For FAST 19beam L-band blind search
-//DDplan.py -l 0 -d 3000 -f 1250 -b 500 -n 4096 -t 0.00005 -r 0.5
-/*  int numcall=2;
-  float startDM[]={0.0, 1981.5};
-  float DMstep[]={0.3, 0.5};
-  int downsamp[]={8, 16};
-  int numDMs[]={6605, 2037};
-*/
-
-//For FAST GC search
-//DM step 0.1, no downsamp
-/*  int numcall=1;
-  float startDM[]={185.5};
-  float DMstep[]={0.1};
-  int downsamp[]={1};
-  int numDMs[]={151};
-*/
-
 //For FAST low frequency search, 290 to 340 MHz, 200 channels
 //DDplan.py -l 0 -d 800 -f 315 -b 50 -n 200 -t 0.0001 -r 1.0
-/*  int numcall=6;
+  int numcall=6;
   float startDM[]={0.0, 31.5, 62.9, 139.4, 278.4, 556.4};
   float DMstep[]={0.1, 0.2, 0.5, 1.0, 2.0, 3.0};
-  int downsamp[]={8, 16, 32, 64, 128, 256};
-  int numDMs[]={315, 157, 153, 139, 139, 100};
-*/
+//  int downsamp[]={8, 16, 32, 64, 128, 256};
+  int downsamp[]={8, 16, 32, 32, 32, 32};
+//  int numDMs[]={315, 157, 153, 139, 139, 100};
+  int numDMs[]={315, 157, 153, 139, 139, 500};
 
 //For searching for FAST 201611 test data
 //DDplan.py -l 0 -d 2000 -f 650 -b 150 -n 500 -t 0.001 -r 0.001

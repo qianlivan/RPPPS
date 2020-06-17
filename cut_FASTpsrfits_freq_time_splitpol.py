@@ -253,22 +253,22 @@ table_hdu3.header.append(('EXTNAME','SUBINT  ','name of this binary table extens
 
 
 
-hdulist2 = pyfits.HDUList([hdu0,table_hdu])
-#hdulist2 = pyfits.HDUList([hdu0])
-#os.system('rm -f FASTpsrfits_out_pol1.fits')
-#hdulist2.writeto('FASTpsrfits_out_pol1.fits')
-outname1=fileroot+'_pol1_'+sys.argv[1]+'_'+sys.argv[2]+'_'+sys.argv[3]+'_'+sys.argv[4]+'.fits'
-rmcomm1='rm -f '+outname1
-os.system(rmcomm1)
-hdulist2.writeto(outname1)
+#hdulist2 = pyfits.HDUList([hdu0,table_hdu])
+##hdulist2 = pyfits.HDUList([hdu0])
+##os.system('rm -f FASTpsrfits_out_pol1.fits')
+##hdulist2.writeto('FASTpsrfits_out_pol1.fits')
+#outname1=fileroot+'_pol1_'+sys.argv[1]+'_'+sys.argv[2]+'_'+sys.argv[3]+'_'+sys.argv[4]+'.fits'
+#rmcomm1='rm -f '+outname1
+#os.system(rmcomm1)
+#hdulist2.writeto(outname1)
 
-hdulist3 = pyfits.HDUList([hdu0,table_hdu2])
-#os.system('rm -f FASTpsrfits_out_pol2.fits')
-#hdulist3.writeto('FASTpsrfits_out_pol2.fits')
-outname2=fileroot+'_pol2_'+sys.argv[1]+'_'+sys.argv[2]+'_'+sys.argv[3]+'_'+sys.argv[4]+'.fits'
-rmcomm2='rm -f '+outname2
-os.system(rmcomm2)
-hdulist3.writeto(outname2)
+#hdulist3 = pyfits.HDUList([hdu0,table_hdu2])
+##os.system('rm -f FASTpsrfits_out_pol2.fits')
+##hdulist3.writeto('FASTpsrfits_out_pol2.fits')
+#outname2=fileroot+'_pol2_'+sys.argv[1]+'_'+sys.argv[2]+'_'+sys.argv[3]+'_'+sys.argv[4]+'.fits'
+#rmcomm2='rm -f '+outname2
+#os.system(rmcomm2)
+#hdulist3.writeto(outname2)
 
 hdulist4 = pyfits.HDUList([hdu0,table_hdu3])
 #os.system('rm -f FASTpsrfits_out_tot.fits')

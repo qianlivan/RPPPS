@@ -141,11 +141,10 @@ int main(int argc, char *argv[]){
   int i=0, j=0, k=0;
   int tmp=0, tmp1=0, tmp2=0;//for counting repeats
   static char datfile[100]={'\0'}, FFTfile[100]={'\0'}, DDout[100]={'\0'};
-  float DDlist[10000]={0};
-  long int Downsamplist[10000]={0};
+  float DDlist[5000]={0};
+  long int Downsamplist[5000]={0};
 
 //create DDlist
-  printf("Calculating dedispersion list.....\n");
   for(i=0;i<numcall;i++){
     for(j=0;j<numDMs[i];j++){
       DDlist[tmp]=startDM[i]+DMstep[i]*j;
@@ -155,8 +154,7 @@ int main(int argc, char *argv[]){
   }
 
 //create output file
-  printf("Creating output files......");
-  sprintf(outfilename,"%s%s",argv[1],"_DDpara_2.bash");
+  sprintf(outfilename,"%s%s",argv[1],"_DDpara_2_fast_middle.bash");
   sprintf(maskfile,"%s%s",argv[1],"_rfifind.mask");
   if(argc==6){
     printf("The extension is given as %s.\n", argv[5]);

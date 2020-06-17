@@ -1,0 +1,49 @@
+#!/bin/bash
+#convert information list of M92A pulsar search to dspsr command
+
+#information list:
+#M92_tracking_0001-0020_ACCEL_50 17    10.18  93.75    783.99    8       3.159390      316.5168     81565.750    0.0x10^-5      0.00       0.0                           
+
+#dspsr command:
+#dspsr -A -L60 -F256 -c (period in second) -D 35.45 -O (output file) (input file) 
+
+filename=info_1003.txt
+lines=`cat $filename | wc -l`
+
+files=20
+((files--))
+
+for((i=i;i<=lines;i++)); do
+  tmp=`cat $filename | sed -n "$i p"`
+  file_str=`echo $tmp | awk '{print $1}'`
+  file_start=${file_str#*tracking_}
+  file_start=${file_start%-*}
+  period=`echo $tmp | awk '{print $7*0.001}'`
+  if [ $period != "0" ]; then
+    period=0.003160286
+    echo Processing start at $file_start, period $period ms ......
+    #combining 20 files
+    rm -rdf tmp_list.txt
+    combined=""
+    for((j=0;j<=files;j++)); do
+      file_index=`echo $file_start+$j | bc`
+      file_index=`printf %04d $file_index`
+      echo "M92_tracking_"$file_index".fits" >> tmp_list.txt
+    done
+    combined="M92_tracking_"$file_start"-"$file_index
+    python combine_fits.py $combined tmp_list.txt
+    #dspsr folding
+    outfile="M92_tracking_"$file_start"-"$file_index
+    #dspsr -t 32 -A -L60 -F256 -E 1003_fast_dd_first-half.par -O $outfile $combined".fits"
+    dspsr -t 32 -A -L60 -F256 -c $period -D 35.45 -O $outfile $combined".fits"
+    rm -rdf $combined".fits" &
+  fi
+done
+
+rm -rdf tmp_list.txt
+
+
+
+
+
+

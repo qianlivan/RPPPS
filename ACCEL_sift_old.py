@@ -1,9 +1,4 @@
-from __future__ import absolute_import
-from builtins import map
-import re
-import glob
-import presto.sifting as sifting
-from operator import itemgetter, attrgetter
+import sifting, re, glob
 
 # Note:  You will almost certainly want to adjust
 #        the following variables for your particular search
@@ -19,8 +14,6 @@ min_num_DMs = 5
 # Lowest DM to consider as a "real" pulsar
 low_DM_cutoff = 2.0
 # Ignore candidates with a sigma (from incoherent power summation) less than this
-#sifting.sigma_threshold = 4.0
-#pzc changes this, 20200617
 sifting.sigma_threshold = 2.0
 # Ignore candidates with a coherent power less than this
 sifting.c_pow_threshold = 100.0
@@ -49,7 +42,6 @@ sifting.long_period = 15.0
 #pzc modified this, 20150401
 sifting.harm_pow_cutoff = 4.0
 
-
 #--------------------------------------------------------------
 
 # Try to read the .inf files first, as _if_ they are present, all of
@@ -62,7 +54,7 @@ if len(re.findall("_[0-9][0-9][0-9]M_" , inffiles[0])):
     dmstrs = [x.split("DM")[-1].split("_")[0] for x in candfiles]
 else:
     dmstrs = [x.split("DM")[-1].split(".inf")[0] for x in inffiles]
-dms = list(map(float, dmstrs))
+dms = map(float, dmstrs)
 dms.sort()
 dmstrs = ["%.2f"%x for x in dms]
 
@@ -84,5 +76,5 @@ if len(cands):
 
 # Write candidates to STDOUT
 if len(cands):
-    cands.sort(key=attrgetter('sigma'), reverse=True)
+    cands.sort(sifting.cmp_sigma)
     sifting.write_candlist(cands)

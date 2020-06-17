@@ -4,7 +4,7 @@
 echo
 echo "------------------------------------------"
 echo "Pulsar candidates folding scripts with PRESTO"
-echo "Last modified 2016-11-24"
+echo "Last modified 2020-06-17"
 echo "Folding script"
 echo "------------------------------------------"
 echo
@@ -87,6 +87,7 @@ echo "File name without extensions are "$fname_noext
 fout=$fname_noext"_ACCEL_"$accelnum
 maskname=$fname_noext"_rfifind.mask"
 fname=$fname_noext$ext
+fname="*.fits"
 echo $fname,$fname_noext,$ext
 line=1
 #echo "single_pulse_search.py *.singlepulse" >> makecand.txt
@@ -121,7 +122,7 @@ do
   fout1=$fname_noext"_pzc_fft_DM"$psr_dm"_"$psr_p_ms"ms_s"$psr_sigma
   echo "mkdir $line" >> makecand.txt
   echo "cd $line" >> makecand.txt
-  echo "prepfold -npart 256 -start 0.01 -end 0.99 -noxwin -mask ../$maskname -dm $psr_dm -nsub $channels -nosearch ../$fname -o $fout1 -accelcand $psr_candnum -accelfile ../$psr_candfile >> /dev/null &" >> makecand.txt
+  echo "prepfold -npart 256 -start 0.01 -end 0.99 -noxwin -mask ../$maskname -dm $psr_dm -nsub $channels -nosearch ../../$fname -o $fout1 -accelcand $psr_candnum -accelfile ../$psr_candfile >> /dev/null &" >> makecand.txt
   echo "cd .." >> makecand.txt
   ((line++))
 done

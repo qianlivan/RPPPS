@@ -1,0 +1,69 @@
+#!/bin/bash
+#convert information list of M92A pulsar search to dspsr command
+
+#information list:
+#M92_tracking_0001-0020_ACCEL_50 17    10.18  93.75    783.99    8       3.159390      316.5168     81565.750    0.0x10^-5      0.00       0.0                           
+
+#dspsr command:
+#dspsr -A -L60 -F256 -c (period in second) -D 35.45 -O (output file) (input file) 
+
+echo "Script start......"
+
+filename=list.txt
+#filename=info_1206.txt
+lines=`cat $filename | wc -l`
+#lines=1
+k=5
+
+dm=82.10
+zmax_value=50
+#for 20 files
+#numout_value=5242880
+#for 10 files
+numout_value=2621440
+
+files=10
+((files--))
+
+for((i=1;i<=lines;i=i+k)); do
+  tmp=`cat $filename | sed -n "$i p"`
+  #file_str=`echo $tmp | awk '{print $1}'`
+  file_str=$tmp
+  #echo $file_str
+  file_start=${file_str#*tracking-M01_}
+  #file_start=${file_start%-*}
+  file_start=${file_start%.fits*}
+  #echo $file_start
+  #period=`echo $tmp | awk '{print $7*0.001}'`
+  #if [ $period != "0" ]; then
+    #period=0.003160286
+    echo Processing start at $file_start......
+    echo Combining $files files......
+    rm -rdf tmp_list.txt
+    combined=""
+    for((j=0;j<=files;j++)); do
+      file_index=`echo $file_start+$j | bc`
+      file_index=`printf %04d $file_index`
+      echo "M14_tracking-M01_"$file_index".fits" >> tmp_list.txt
+    done
+    combined="M14_tracking-M01_"$file_start"-"$file_index
+    python combine_fits.py $combined tmp_list.txt
+    #dspsr folding
+    outfile="M14_tracking-M01_"$file_start"-"$file_index
+    #dspsr -t 32 -A -L60 -F256 -E 1003_dspsr_2.par -O $outfile $combined".fits"
+    #dspsr -t 32 -A -L60 -F256 -c $period -D 35.45 -O $outfile $combined".fits"
+    rfifind -time 3.2 -ncpus 8 -o $outfile $combined".fits" -zapchan 3800:4096,1380:1500,1650:1760,2150:2300,0:200,370:380,635:650,800:880,930:940,1080:1120,1140:1180,450:470,2420:2440,2500:2540,2800:2820,3280:3300,2560:2590,1570:1590
+    prepdata -nobary -mask $outfile"_rfifind.mask" -dm $dm -ncpus 8 -downsamp 1 -numout $numout_value -o $outfile $outfile".fits"
+    realfft -mem -fwd $outfile".dat"
+    accelsearch -ncpus 8 -zmax $zmax_value -numharm 32 -inmem $outfile".fft"
+    #rm -rdf $combined".fits" &
+  #fi
+done
+
+rm -rdf tmp_list.txt
+
+
+
+
+
+

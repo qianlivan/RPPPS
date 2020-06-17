@@ -19,6 +19,7 @@ int main(int argc, char * argv[]){
     fprintf(outfile,"cd %d\n",i);
     fprintf(outfile,"mv *.ps ..\n");
     fprintf(outfile,"mv *.pfd ..\n");
+    fprintf(outfile,"mv *.png ..\n");
     fprintf(outfile,"cd ..\n");
     fprintf(outfile,"rm -rdf %d\n\n",i);
   }

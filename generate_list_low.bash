@@ -1,0 +1,277 @@
+#!/bin/bash
+
+#give the beam forming parameters, for low frequency, centerting at 315 MHz with 50 MHz bandwidth
+channel_start=1160
+channel_end=1359
+center_freq=315
+beam_size_subint=64
+band_selection="low"
+raw_file_string="0-1G"
+beam_offset=32
+para_version="2_fast_low"
+
+#give the beam forming parameters, for middle frequency, centerting at 650 MHz with 150 MHz bandwidth
+#channel_start=2350
+#channel_end=2849
+#beam_size_subint=32
+#band_selection="middle"
+#raw_file_string="0-1G"
+#beam_offset=16
+#para_version="2_fast_middle"
+
+#give the beam forming parameters, for high frequency (L-band), centerting at 1250 MHz with 400 MHz bandwidth
+#channel_start=104
+#channel_end=1703
+#beam_size_subint=32
+#band_selection="high"
+#raw_file_string="1-2G"
+#beam_offset=16
+
+#other constants
+file_subints=64
+accel_zmax=10
+threads_num=201
+#ra_start=205.2705
+#dec_start=30.4592
+hour_start=20.0
+subint_length=0.8192
+beam_folder="beams_"$band_selection
+filelist="list_"$band_selection".txt"
+filelist_subint="list_"$band_selection"_subints.txt"
+cutting_script="run_file_process_"$band_selection".bash"
+current_data_path=`pwd`
+raw_data_path=$current_data_path"/raw"
+((beam_offset_half=beam_offset/2))
+pfd_path="/data2/home2/pzc/pfd_all"
+
+#check if the raw file folder exist
+if [ ! -d "$raw_data_path" ];then
+  echo "Now raw data folder found."
+  exit 0
+fi
+
+#generate the file list
+ls $raw_data_path"/"*$raw_file_string*.fits > $filelist
+
+#get the start MJD
+filename_tmp=`cat $filelist | sed -n "1 p"`
+mjd=`readfile $filename_tmp | grep DATE-OBS | awk '{print $6}'`
+ra_start=`python $RPPPS_DIR/mjd2lst.py $mjd`
+dec_start=0.0
+if [ "$#" -eq "1" ];then
+  dec_start=${1}
+fi
+echo "Start MJD is $mjd, start RA is $ra_start degree, start DEC is $dec_start degree."
+echo "Please check this."
+read a
+
+#see how many files do we have
+lines=`cat ./$filelist | wc -l`
+
+#get the detailed filelist
+if [ -d "./$filelist_subint" ];then
+  rm -rdf "./$filelist_subint"
+fi
+echo "Checking FAST psrfits in this folder."
+subints_total=0
+for((i=1;i<=lines;i++))
+do
+  filename=`cat $filelist | sed -n "$i p"`
+  subints=`readfile $filename | grep "Subints per file" | awk '{print $5}'`
+  ((subints_total=subints_total+subints))
+  #echo "File $filename has $subints subints."
+  echo "$filename $subints" >> $filelist_subint
+  echo "Checking $filename, have $subints subints"
+done
+echo "$lines files found."
+echo "Total subints we got are $subints_total."
+
+#get the filename string and then for generate filenames
+#filename_string=${filename#*/}
+#filename_noext=${filename_string%.*}
+#filename_string=${filename_string%_*}"_0"
+#echo $filename_string
+
+subints_start=0
+if [ -d "./$cutting_script" ];then
+  rm -rdf ./$cutting_script
+fi
+if [ ! -d "./$beam_folder/" ];then
+  mkdir ./$beam_folder
+fi
+echo "Creating SHELL script."
+total_beams=0
+while [ $subints_start -lt $subints_total ]
+do
+  flag_combine=0
+  flag_cut=0
+  #seeking the file
+  index=$((subints_start/file_subints+1))
+  #deciding cut or combine
+  subints_left=$[ subints_start % file_subints ]
+  if((subints_left+beam_size_subint > file_subints))
+  then
+    flag_combine=1
+  else
+    flag_cut=1
+  fi
+  #echo $subints_left, $beam_size_subint, $file_subints, $flag_combine, $flag_cut, $subints_start
+  #generate the command
+  file1=`cat $filelist_subint | sed -n "$index p" | awk '{print $1}'`
+  #file1=${file1#*/}
+  file1=${file1#*raw/}
+  #file1_noext=${file1#*/}
+  file1_noext=${file1%.*}
+  ((subints_file1_start=subints_left))
+  #echo "echo Processing $file1, start subints $subints_file1_start, channel start $channel_start, channel end $channel_end." >> $cutting_script
+  if((flag_combine==1))
+  then
+    ((index++))
+    file2=`cat $filelist_subint | sed -n "$index p" | awk '{print $1}'`
+    #file2=${file2#*/}
+    file2=${file2#*raw/}
+    #filename_string=${file1#*/}
+    file2_noext=${file2%.*}
+    ((subints_file2_end=subints_file1_start+beam_size_subint-$file_subints-1))
+    #seems with python input error
+    #echo "python $RPPPS_DIR/combine_cut_FASTpsrfits_freq_time_splitpol.py $channel_start $channel_end $subints_file1_start $subints_file2_end $raw_data_path"/"$file1 $raw_data_path"/"$file2 >> /dev/null" >> $cutting_script
+    ((total_beams=total_beams+1))
+    echo Combining $file1 and $file to be beam $total_beams.
+    echo "echo Combining data sections, starts from sunint $subints_file1_start of $file1, ends at subint $subints_file2_end of $file2" >> $cutting_script
+    #echo "cd "$raw_data_path >> $cutting_script
+    echo "python -W ignore $RPPPS_DIR/combine_cut_FASTpsrfits_freq_time_splitpol.py $channel_start $channel_end $subints_file1_start $subints_file2_end $raw_data_path"/"$file1 $raw_data_path"/"$file2 >> /dev/null" >> $cutting_script
+
+    #filename_combine_org=$file1_noext"_"$file2_noext"_tot_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file2_end".fits"
+    filename_combine_org="combined.fits"
+    ((subints_coordinate=subints_start+beam_offset_half))
+    ra=`$RPPPS_DIR/create_coordinate $ra_start $dec_start $subints_coordinate $subint_length | grep degree | grep RA | awk '{print $5}'`
+    #dec=`$RPPPS_DIR/create_coordinate $ra_start $dec_start $subints_coordinate $subint_length | grep degree | grep DEC | awk '{print $5}'`
+    dec=$dec_start
+    rm -rdf coordinate_beam.txt
+    #mjd=`readfile $raw_data_path/$filename_combine_org | grep DATE-OBS | awk '{print $6}'`
+    date_string=`python $RPPPS_DIR/mjd2date.py $mjd $subints_coordinate $subint_length`
+    #date_string=${file1_noext%%_*}
+    #date_string=${date_string#FP*}
+    #echo "Modified RA and DEC are $ra, $dec"
+    gl_gb=`python $RPPPS_DIR/radec2glonglat.py $ra $dec`
+    #f_index=${file1_noext##*_}
+    filename_combine_noext="FP"$date_string"_dec"$dec"_"$gl_gb"_uwb0_"$center_freq"MHz_f000"
+    #filename_combine_noext="FP"$dec"d"$hour_start"h_"$date_string"_G"$gl_gb"_uwb0_"$center_freq"MHz_f"$f_index
+    filename_combine=$filename_combine_noext".fits"
+    echo "mv -f "$current_data_path"/"$filename_combine_org" "$current_data_path"/"$beam_folder"/"$filename_combine >> $cutting_script
+    #echo "cd "$current_data_path >> $cutting_script
+
+    #echo "rm -rdf $file1_noext"_"$file2_noext"_pol1_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file2_end".fits"" >> $cutting_script
+    #echo "rm -rdf $file1_noext"_"$file2_noext"_pol2_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file2_end".fits"" >> $cutting_script
+    #echo "mv -f "$raw_data_path"/"$file1_noext"_"$file2_noext"_tot_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file2_end".fits ./"$beam_folder"/" >> $cutting_script
+
+    #modify the coordinates
+    #entering the beam folder
+    echo "cd "$current_data_path"/"$beam_folder >> $cutting_script
+    #generate the parameter file, usage: Ra in degree, Dec in degree, number of subints from the first file, lenght in second of one subint
+    echo $RPPPS_DIR"/create_coordinate" $ra_start $dec_start $subints_coordinate $subint_length" >> /dev/null" >> $cutting_script
+    #modify the coordinate
+    echo "python "$RPPPS_DIR"/modify_FASTpsrfits.py "$filename_combine" coordinate_beam.txt >> /dev/null" >> $cutting_script
+    #rename the filename
+    echo "mv -f FASTpsrfits_out.fits "$filename_combine >> $cutting_script
+
+    #submit search job
+    #echo "cd ./"$beam_folder"/" >> $cutting_script
+    echo "cp -f "$RPPPS_DIR"/qsub_template.bash ./"$filename_combine_noext".qsub" >> $cutting_script
+    #set task name
+    echo "echo #PBS -N "$filename_combine".search >> "$filename_combine_noext".qsub" >> $cutting_script
+    #change to current path
+    #echo "echo cd "$current_data_path"/beams_"$band_selection" >> "$file1_noext"_"$file2_noext"_tot_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file2_end".qsub" >> $cutting_script
+    #pulsar search
+    echo "echo bash "$RPPPS_DIR"/RPPPS_start.presto "$filename_combine" "$threads_num" "$accel_zmax" "$para_version" >> "$filename_combine_noext".qsub" >> $cutting_script
+    #link all the pfd files to one same folder
+    current_data_folder=`pwd`
+    #echo "echo cd "$pfd_path" >> "$filename_cut_noext".qsub" >> $cutting_script
+    #echo "echo ln -s "$current_data_folder"/"$filename_combine_noext"/*.pfd "$pfd_path" >> "$filename_combine_noext".qsub" >> $cutting_script
+    echo "echo \"ls "$current_data_folder"/beams_"$band_selection"/"$filename_combine_noext"/*.pfd | xargs -n 1 --replace ln -f {} "$pfd_path\"" >> "$filename_combine_noext".qsub" >> $cutting_script
+    #show the date
+    echo "echo date >> "$filename_combine_noext".qsub" >> $cutting_script
+    #submit the task
+    echo "echo Submitting the task" >> $cutting_script
+    echo "qsub -q low -d "$current_data_path"/beams_"$band_selection" "$current_data_path"/beams_"$band_selection"/"$filename_combine_noext".qsub >> /dev/null" >> $cutting_script
+    echo "cd "$current_data_path >> $cutting_script
+    echo >> $cutting_script
+  fi
+  if((flag_cut==1))
+  then
+    ((subints_file1_end=subints_file1_start+beam_size_subint-1))
+    ((total_beams=total_beams+1))
+    echo Cutting $file1 to be beam $total_beams.
+    echo "echo Cutting data section in $file1, for subint $subints_file1_start to $subints_file1_end. " >> $cutting_script
+    echo "python -W ignore $RPPPS_DIR/cut_FASTpsrfits_freq_time_splitpol.py $channel_start $channel_end $subints_file1_start $subints_file1_end $raw_data_path"/"$file1 >> /dev/null" >> $cutting_script
+    #remove polarization files due to that they won't be needed in pulsar search(?).
+    #echo "rm -rdf $file1_noext"_pol1_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file1_end".fits"" >> $cutting_script
+    #echo "rm -rdf $file1_noext"_pol2_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file1_end".fits"" >> $cutting_script
+    filename_cut_org=$file1_noext"_tot_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file1_end".fits"
+    ((subints_coordinate=subints_start+beam_offset_half))
+    ra=`$RPPPS_DIR/create_coordinate $ra_start $dec_start $subints_coordinate $subint_length | grep degree | grep RA | awk '{print $5}'`
+    #dec=`$RPPPS_DIR/create_coordinate $ra_start $dec_start $subints_coordinate $subint_length | grep degree | grep DEC | awk '{print $5}'`
+    dec=$dec_start
+    rm -rdf coordinate_beam.txt
+    #mjd=`readfile $raw_data_path/$filename_cut_org | grep DATE-OBS | awk '{print $6}'`
+    date_string=`python $RPPPS_DIR/mjd2date.py $mjd $subints_coordinate $subint_length`
+    #date_string=${file1_noext%%_*}
+    #date_string=${date_string#FP*}
+    #echo "Modified RA and DEC are $ra, $dec"
+    gl_gb=`python $RPPPS_DIR/radec2glonglat.py $ra $dec`
+    #f_index=${file1_noext##*_}
+    filename_cut_noext="FP"$date_string"_dec"$dec"_"$gl_gb"_uwb0_"$center_freq"MHz_f000"
+    #filename_cut_noext="FP"$dec"d"$hour_start"h_"$date_string"_G"$gl_gb"_uwb0_"$center_freq"MHz_f"$f_index
+    filename_cut=$filename_cut_noext".fits"
+    echo "mv -f "$raw_data_path"/"$filename_cut_org" "$current_data_path"/"$beam_folder"/"$filename_cut >> $cutting_script
+
+    #modify the coordinates
+    #entering the beam folder
+    echo "cd "$current_data_path"/"$beam_folder >> $cutting_script
+    #generate the parameter file, usage: Ra in degree, Dec in degree, number of subints from the first file, lenght in second of one subint
+    #((subints_coordinate=subints_start+beam_offset_half))
+    echo $RPPPS_DIR"/create_coordinate" $ra_start $dec_start $subints_coordinate $subint_length" >> /dev/null" >> $cutting_script
+    #modify the coordinate
+    echo "python "$RPPPS_DIR"/modify_FASTpsrfits.py "$filename_cut" coordinate_beam.txt >> /dev/null" >> $cutting_script
+    #rename the filename
+    echo "mv -f FASTpsrfits_out.fits "$filename_cut >> $cutting_script
+
+    #submit search job
+    #echo "cd ./"$beam_folder"/" >> $cutting_script
+    echo "cp -f "$RPPPS_DIR"/qsub_template.bash ./"$filename_cut_noext".qsub" >> $cutting_script
+    #set task name
+    echo "echo #PBS -N "$file1_noext"_search >> "$filename_cut_noext".qsub" >> $cutting_script
+    #change to current path
+    #echo "echo cd "$current_data_path"/beams_"$band_selection" >> "$file1_noext"_"$file2_noext"_tot_"$channel_start"_"$channel_end"_"$subints_file1_start"_"$subints_file2_end".qsub" >> $cutting_script
+    #pulsar search
+    echo "echo bash "$RPPPS_DIR"/RPPPS_start.presto "$filename_cut" "$threads_num" "$accel_zmax" "$para_version" >> "$filename_cut_noext".qsub" >> $cutting_script
+    #link all the pfd files to one same folder
+    current_data_folder=`pwd`
+    echo "echo cd "$pfd_path" >> "$filename_cut_noext".qsub" >> $cutting_script
+    #echo "echo ln "$current_data_folder"/"$filename_cut_noext"/*.pfd ./ >> "$filename_cut_noext".qsub" >> $cutting_script
+    echo "echo \"ls "$current_data_folder"/beams_"$band_selection"/"$filename_cut_noext"/*.pfd | xargs -n 1 --replace ln -f {} "$pfd_path\"" >> "$filename_cut_noext".qsub" >> $cutting_script
+    #show the date
+    echo "echo date >> "$filename_cut_noext".qsub" >> $cutting_script
+    #submit the task
+    echo "echo Submitting the task" >> $cutting_script
+    echo "qsub -q low -d "$current_data_path"/beams_"$band_selection" "$current_data_path"/beams_"$band_selection"/"$filename_cut_noext".qsub >> /dev/null" >> $cutting_script
+    echo "cd "$current_data_path >> $cutting_script
+    echo >> $cutting_script
+  fi
+  ((subints_start=subints_start+beam_offset))
+  echo "Processed "$subints_start" subints, "$subints_total"  in totoal."
+done
+
+echo "Cutting files and then process them."
+bash ./$cutting_script
+
+#echo "Sifting Candidates."
+#cd ./$beam_folder/
+#ls -F | grep / | xargs -n 1 --replace bash $RPPPS_DIR/RPPPS_sift.presto {} $accel_zmax
+
+#clean up
+rm -rdf $filelist_subint
+rm -rdf $filelist
+#rm -rdf $cutting_script
+echo "All Finished."
+

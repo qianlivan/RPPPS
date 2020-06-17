@@ -28,7 +28,7 @@ fi
 
 paranum=8
 accelnum=0
-para_version="2"
+para_version="2_singlepulseonly"
 
 if [ "$#" -eq "2" ];then
   paranum=${2}
@@ -37,12 +37,6 @@ if [ "$#" -eq "3" ];then
   paranum=${2}
   accelnum=${3}
 fi
-if [ "$#" -eq "4" ];then
-  paranum=${2}
-  accelnum=${3}
-  para_version=${4}
-fi
-
 
 #------------------------------------
 #Forming file names from the full path
@@ -162,7 +156,6 @@ freqsig=4
 timesig=10
 chanfrac=0.7
 intfrac=0.3
-#cp ../NGC6517_short/NGC6517_long_rfifind* ./
 bash $RPPPS_DIR/RPPPS_rfifind.presto $fname $rfitime $bad_percentage $rfi_output $freqsig $timesig $chanfrac $intfrac
 date >> log.txt
 echo "RFI seeking finished." >> log.txt
@@ -185,6 +178,11 @@ DDscriptname=$fname_noext"_DDpara_"$para_version".bash"
 echo "Dedispersing, FFTing and searching......"
 echo
 bash ./$DDscriptname
+single_pulse_search.py ./*.singlepulse
+echo "Cleanig Files......"
+echo
+rm -rdf *.inf
+rm -rdf *.singlepulse
 date >> log.txt
 echo "Searching finished." >> log.txt
 echo >> log.txt

@@ -9,7 +9,9 @@ echo rfifind time usage:
 #alias rfifind19='rfifind -zapchan 3800:4096,1380:1500,1650:1760,2150:2300,0:200,370:380,635:650,800:880,930:940,1080:1120,1140:1180,450:470,2420:2440,2500:2540,2800:2820,3280:3300,2560:2590,1570:1590'
 #rfifind_time=`time rfifind -ncpus 8 ${1} -o ${4} -time ${2} -freqsig ${5} -timesig ${6} -chanfrac ${7} -intfrac ${8} > rfifind.txt`
 #cp ../NGC6517_long_old/* ./
-rfifind_time=`time rfifind -ncpus 8 ${1} -o ${4} -time ${2} -freqsig ${5} -timesig ${6} -chanfrac ${7} -intfrac ${8} -zapchan 3800:4096,1380:1500,1650:1760,2150:2300,0:200,370:380,635:650,800:880,930:940,1080:1120,1140:1180,450:470,2420:2440,2500:2540,2800:2820,3280:3300,2560:2590,1570:1590 > rfifind.txt`
+#rfifind_time=`time rfifind -ncpus 8 ${1} -o ${4} -time ${2} -freqsig ${5} -timesig ${6} -chanfrac ${7} -intfrac ${8} -zapchan 3800:4096,1380:1500,1650:1760,2150:2300,0:200,370:380,635:650,800:880,930:940,1080:1120,1140:1180,450:470,2420:2440,2500:2540,2800:2820,3280:3300,2560:2590,1570:1590 > rfifind.txt`
+#echo "time rfifind -ncpus 8 ../*.fits -o ${4} -time ${2} -zapchan 0:100,4000:4100"
+rfifind_time=`time rfifind -ncpus 8 ../*.fits -o ${4} -time ${2} -zapchan 0:100,4000:4100 > rfifind.txt`
 
 #------------------------------------------------------------------
 #read RFI bad percentage

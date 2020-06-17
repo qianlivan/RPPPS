@@ -141,11 +141,10 @@ int main(int argc, char *argv[]){
   int i=0, j=0, k=0;
   int tmp=0, tmp1=0, tmp2=0;//for counting repeats
   static char datfile[100]={'\0'}, FFTfile[100]={'\0'}, DDout[100]={'\0'};
-  float DDlist[10000]={0};
-  long int Downsamplist[10000]={0};
+  float DDlist[5000]={0};
+  long int Downsamplist[5000]={0};
 
 //create DDlist
-  printf("Calculating dedispersion list.....\n");
   for(i=0;i<numcall;i++){
     for(j=0;j<numDMs[i];j++){
       DDlist[tmp]=startDM[i]+DMstep[i]*j;
@@ -155,8 +154,7 @@ int main(int argc, char *argv[]){
   }
 
 //create output file
-  printf("Creating output files......");
-  sprintf(outfilename,"%s%s",argv[1],"_DDpara_2.bash");
+  sprintf(outfilename,"%s%s",argv[1],"_DDpara_2_singlepulseonly.bash");
   sprintf(maskfile,"%s%s",argv[1],"_rfifind.mask");
   if(argc==6){
     printf("The extension is given as %s.\n", argv[5]);
@@ -197,19 +195,19 @@ int main(int argc, char *argv[]){
     fprintf(outfile,"echo \"prepdata -mask ../%s -numout %d -dm %.2f -downsamp %d -o %s ../%s\" >> tmp.bash \n", maskfile, numout/Downsamplist[i-1], DDlist[i-1], Downsamplist[i-1], datfile, rawfile);
     sprintf(FFTfile,"%s%s",datfile,".fft");
     sprintf(datfile,"%s%s",datfile,".dat");
-    fprintf(outfile,"echo \"realfft %s -mem -fwd\" >> tmp.bash \n", datfile);
-    fprintf(outfile,"echo \"accelsearch -inmem -zmax %d -numharm 16 %s\" >> tmp.bash \n", accelnum, FFTfile);
+    //fprintf(outfile,"echo \"realfft %s -mem -fwd\" >> tmp.bash \n", datfile);
+    //fprintf(outfile,"echo \"accelsearch -inmem -zmax %d -numharm 16 %s\" >> tmp.bash \n", accelnum, FFTfile);
 
     //added single pulse search, 2015-08-11
     //as we will use something else, such as heimdall for single pulse search,
     //this part in PRESTO will be removed. 2016-11-07
-    //fprintf(outfile,"echo \"single_pulse_search.py -b *.dat\" >> tmp.bash \n");
+    fprintf(outfile,"echo \"single_pulse_search.py -b *.dat\" >> tmp.bash \n");
     //move single pulse serach result file
-    //fprintf(outfile,"echo \"mv ./*.singlepulse ../\" >> tmp.bash \n");
+    fprintf(outfile,"echo \"mv ./*.singlepulse ../\" >> tmp.bash \n");
 
     
     fprintf(outfile,"echo \"mv ./*.inf ../\" >> tmp.bash \n");
-    fprintf(outfile,"echo \"mv ./*_ACCEL* ../\" >> tmp.bash \n");
+    //fprintf(outfile,"echo \"mv ./*_ACCEL* ../\" >> tmp.bash \n");
     //fprintf(outfile,"echo \"sleep 2\" >> tmp.bash");
 
     //fprintf(outfile,"echo \"cd .. \" >> tmp.bash \n");

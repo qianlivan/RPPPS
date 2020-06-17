@@ -4,7 +4,7 @@
 echo
 echo "------------------------------------------"
 echo "Pulsar search scripts with PRESTO"
-echo "Last modified 2016-11-24"
+echo "Last modified 2020-06-17"
 echo "Search script."
 echo "------------------------------------------"
 echo
@@ -15,9 +15,9 @@ echo
 #FILENAME without .sf
 if [ "$#" -eq "0" ];then
   echo "Please at least tell me the file path and name, thank you!"
-  echo "Usage: RPPPS_search.presto FILENAME (para num) (acceleration)"
+  echo "Usage: RPPPS_search.presto FOLDERNAME (para num) (acceleration) (parallel version)"
   echo "Default: para_num is 8, acceleration 0"
-  echo "Example: bash $RPPPS_DIR/RPPPS_search.presto /hone/pzc/tmp/PMPS_test/PM0064_00311.sf 64 200"
+  echo "Example: bash $RPPPS_DIR/RPPPS_search_list.presto FAST_data 64 200 2"
   echo "Example: ls ./*.fil | xargs -n 1 bash RPPPS_start.presto"
   echo
   #${1}=/data1/pzc/filterbank_all/47T020.dat.fil
@@ -53,10 +53,13 @@ fi
 pathname=${1}
 
 #fname=aaa.fil
-fname=${pathname##*/}
+#fname=${pathname##*/}
+fname=${1}".fits"
+#echo $fname
 
 #fname_noext=aaa
-fname_noext=${fname%.*}
+#fname_noext=${fname%.*}
+fname_noext=$pathname
 
 #fname_ext=fil
 fname_ext=${fname##*.}
@@ -82,15 +85,22 @@ echo >> log.txt
 
 #------------------------------------------------------------------
 #check if file exist
-if [ ! -f "$pathname" ]; then
-  #show information in screen
-  echo "ERROR: no such a file $pathname."
-  echo "Finished."
-  #write log.txt in start DIR
+#if [ ! -f "$pathname" ]; then
+#  #show information in screen
+#  echo "ERROR: no such a file $pathname."
+#  echo "Finished."
+#  #write log.txt in start DIR
+#  date >> log.txt
+#  echo "ERROR: no such a file $pathname." >> log.txt
+#  echo "Finished. " >> log.txt
+#  echo >> log.txt
+#  exit 1
+#fi
+fits_count=`ls ./*.fits | wc -l`
+if((fits_count==0)); then
+  echo "No PSRFITS files found."
+  echo "No PSRFTIS files found." >> log.txt
   date >> log.txt
-  echo "ERROR: no such a file $pathname." >> log.txt
-  echo "Finished. " >> log.txt
-  echo >> log.txt
   exit 1
 fi
 echo "Datafile $fname found at $pathname."
@@ -127,35 +137,37 @@ echo >> log.txt
 #------------------------------------------------------------------
 #copy file
 #cp $pathname ./ -f
-ln -s $pathname ./
+#ln -s $pathname ./
 
 #------------------------------------------------------------------
 #get numout and channels
-spectraPF=`readfile $fname | grep Spectra | grep file | awk '{print int($5)}'`
+#spectraPF=`readfile $fname | grep Spectra | grep file | awk '{print int($5)}'`
 #if even, -1
-(($((spectraPF%2))==0))||spectraPF=$((spectraPF-1))
-channels=`readfile $fname | grep channels | awk '{print int($5)}'`
-echo "Numout is $spectraPF."
-echo
+#(($((spectraPF%2))==0))||spectraPF=$((spectraPF-1))
+#echo "Numout is $spectraPF."
+#echo
+
+#channels=`readfile ../$fname | grep channels | awk '{print int($5)}'`
+channels="4096"
 
 #------------------------------------------------------------------
 #write RA and DEC in log.txt, so that the positions can be used for known-pulsar identification.
-RA=`readfile $fname | grep RA | sed -n "2 p" | awk '{print $5}'`
-DEC=`readfile $fname | grep Dec | sed -n "2 p" | awk '{print $5}'`
-echo "File pointing: RA $RA, DEC $DEC."
-echo
-date >> log.txt
-echo "File: $pathname" >> log.txt
-echo "RA $RA" >> log.txt
-echo "DEC $DEC" >> log.txt
-echo >> log.txt
+#RA=`readfile ../$fname | grep RA | sed -n "2 p" | awk '{print $5}'`
+#DEC=`readfile ../$fname | grep Dec | sed -n "2 p" | awk '{print $5}'`
+#echo "File pointing: RA $RA, DEC $DEC."
+#echo
+#date >> log.txt
+#echo "File: $pathname" >> log.txt
+#echo "RA $RA" >> log.txt
+#echo "DEC $DEC" >> log.txt
+#echo >> log.txt
 
 #------------------------------------------------------------------
 #checking RFI and make mask
 date >> log.txt
 echo "RFI seeking start." >> log.txt
 echo >> log.txt
-rfitime=0.5
+rfitime=12.9
 bad_percentage=40
 rfi_output=$fname_noext
 freqsig=4
@@ -163,7 +175,7 @@ timesig=10
 chanfrac=0.7
 intfrac=0.3
 #cp ../NGC6517_short/NGC6517_long_rfifind* ./
-bash $RPPPS_DIR/RPPPS_rfifind.presto $fname $rfitime $bad_percentage $rfi_output $freqsig $timesig $chanfrac $intfrac
+bash $RPPPS_DIR/RPPPS_rfifind_list.presto $fname $rfitime $bad_percentage $rfi_output $freqsig $timesig $chanfrac $intfrac
 date >> log.txt
 echo "RFI seeking finished." >> log.txt
 echo >> log.txt
@@ -178,9 +190,9 @@ echo
 echo "Creating parallel script with paranum $paranum and acceleration $accelnum."
 echo
 #creating parallel script
-$RPPPS_DIR"/makeDDlist_para_"$para_version".linux" $fname_noext $spectraPF $paranum $accelnum "."$fname_ext #>> /dev/null
+$RPPPS_DIR"/makeDDlist_para_"$para_version"_list.linux" $fname_noext 64646464 $paranum $accelnum "."$fname_ext #>> /dev/null
 #forming filename
-DDscriptname=$fname_noext"_DDpara_"$para_version".bash"
+DDscriptname=$fname_noext"_DDpara_"$para_version"_list.bash"
 #run script
 echo "Dedispersing, FFTing and searching......"
 echo
